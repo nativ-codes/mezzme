@@ -1,0 +1,20 @@
+{
+  "name": "mezzme",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "client": "yarn workspace client dev",
+    "server": "yarn workspace server dev",
+    "start": "concurrently --kill-others-on-fail \"yarn server\" \"yarn client\"",
+    "clean": "rimraf packages/*/node_modules && rimraf node_modules",
+    "reinstall": "yarn clean && yarn install"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5"
+  },
+  "packageManager": "yarn@1.22.22"
+}
