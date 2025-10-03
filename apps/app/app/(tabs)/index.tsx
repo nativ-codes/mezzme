@@ -22,7 +22,9 @@ export default function Page() {
       marginTop: 100,
     }}>
       <SignedIn>
-        <Text>Hello {user?.emailAddresses[0].emailAddress}</Text>
+        <Text onPress={async() => {
+          console.log(await getToken())
+        }}>Hello {user?.emailAddresses[0].emailAddress}</Text>
         <SignOutButton />
       </SignedIn>
       <SignedOut>

@@ -25,15 +25,16 @@ export class ClerkAuthGuard {
     if (!token) {
       throw new UnauthorizedException('No token provided');
     }
-    // THIS WILL CHECK IF THE JWT IS VALID
     try {
-      if (typeof token === 'string') {
-        await verifyToken(token, {
-          secretKey: this.configService.get('CLERK_SECRET_KEY'),
-        });
-      } else {
-        throw new Error();
-      }
+      const payload = await verifyToken(token, {
+        secretKey: this.configService.get('CLERK_SECRET_KEY'),
+      });
+
+      // Attach user info to request
+      req.user = {
+        userId: payload.sub, // Clerk user ID
+        ...payload,
+      };
 
       return true;
     } catch (error) {
