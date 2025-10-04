@@ -10,7 +10,7 @@ import { GetProfileDto } from './dto/get-profile.dto';
 import { UnfollowUserDto } from './dto/unfollow-user.dto';
 import { GetFollowingDto } from './dto/get-following.dto';
 import { UploadService } from '../upload/upload.service';
-import { ProfilePicture } from './schemas/user.schema';
+import { ProfilePicture } from './schemas/profile-picture.schema';
 
 @Injectable()
 export class UsersService {

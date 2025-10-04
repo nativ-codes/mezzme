@@ -18,7 +18,6 @@ import { CurrentUser } from 'src/decorators/current-user.decorator';
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
-  // Create user
   @Post()
   create(
     @CurrentUser('authId') authId: string,
@@ -30,13 +29,11 @@ export class UsersController {
     });
   }
 
-  // Get all users
   @Get()
   findAll(@CurrentUser('authId') authId: string) {
     return this.usersService.findAll(authId);
   }
 
-  // Get user profile
   @Get(':targetUserId')
   getProfile(
     @Param('targetUserId') targetUserId: string,
@@ -45,7 +42,6 @@ export class UsersController {
     return this.usersService.getProfile({ authId, targetUserId });
   }
 
-  // Follow a user
   @Post(':targetUserId/follow')
   followUser(
     @Param('targetUserId') targetUserId: string,
@@ -54,7 +50,6 @@ export class UsersController {
     return this.usersService.followUser({ authId, targetUserId });
   }
 
-  // Unfollow a user
   @Delete(':targetUserId/unfollow')
   unfollowUser(
     @Param('targetUserId') targetUserId: string,
@@ -63,7 +58,6 @@ export class UsersController {
     return this.usersService.unfollowUser({ authId, targetUserId });
   }
 
-  // Get following list
   @Get(':authId/following')
   getFollowing(
     @Param('authId') authId: string,
@@ -73,7 +67,6 @@ export class UsersController {
     return this.usersService.getFollowing({ authId, page, limit });
   }
 
-  // Add profile picture
   @Post('profile-pictures')
   @UseInterceptors(FileInterceptor('profilePicture'))
   addProfilePicture(
@@ -83,7 +76,6 @@ export class UsersController {
     return this.usersService.addProfilePicture(authId, file);
   }
 
-  // Remove profile picture
   @Delete('profile-pictures')
   removeProfilePicture(
     @CurrentUser('authId') authId: string,
@@ -92,7 +84,6 @@ export class UsersController {
     return this.usersService.removeProfilePicture(authId, profilePictureId);
   }
 
-  // Set primary profile picture
   @Post('profile-pictures/primary')
   setPrimaryProfilePicture(
     @CurrentUser('authId') authId: string,

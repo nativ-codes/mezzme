@@ -1,25 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
+import { ProfilePicture, ProfilePictureSchema } from './profile-picture.schema';
 
 export type UserDocument = HydratedDocument<User>;
-
-export interface ProfilePicture {
-  _id?: string;
-  url: string;
-  isPrimary: boolean;
-}
-
-@Schema()
-export class ProfilePictureSchema {
-  @Prop({ required: true })
-  url: string;
-
-  @Prop({ default: false })
-  isPrimary: boolean;
-}
-
-export const ProfilePictureSchemaDefinition =
-  SchemaFactory.createForClass(ProfilePictureSchema);
 
 @Schema()
 export class User {
@@ -33,7 +16,7 @@ export class User {
   email: string;
 
   @Prop({
-    type: [ProfilePictureSchemaDefinition],
+    type: [ProfilePictureSchema],
     default: [],
     validate: [arrayLimit, '{PATH} exceeds the limit of 5'],
   })

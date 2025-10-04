@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { v2 as cloudinary } from 'cloudinary';
+import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 
 @Injectable()
 export class UploadService {
@@ -26,9 +26,13 @@ export class UploadService {
 
     try {
       // Configure Cloudinary with environment variables
-      const cloudName = this.configService.get('CLOUDINARY_CLOUD_NAME');
-      const apiKey = this.configService.get('CLOUDINARY_API_KEY');
-      const apiSecret = this.configService.get('CLOUDINARY_API_SECRET');
+      const cloudName = this.configService.get(
+        'CLOUDINARY_CLOUD_NAME',
+      ) as string;
+      const apiKey = this.configService.get('CLOUDINARY_API_KEY') as string;
+      const apiSecret = this.configService.get(
+        'CLOUDINARY_API_SECRET',
+      ) as string;
 
       cloudinary.config({
         cloud_name: cloudName,
@@ -37,7 +41,7 @@ export class UploadService {
       });
 
       // Upload to Cloudinary
-      const result = await new Promise((resolve, reject) => {
+      const result = await new Promise<UploadApiResponse>((resolve, reject) => {
         cloudinary.uploader
           .upload_stream(
             {
@@ -49,18 +53,18 @@ export class UploadService {
             },
             (error, result) => {
               if (error) {
-                reject(error);
+                reject(error as Error);
               } else {
-                resolve(result);
+                resolve(result as UploadApiResponse);
               }
             },
           )
           .end(file.buffer);
       });
 
-      return (result as any).secure_url;
+      return result.secure_url;
     } catch (error) {
-      throw new BadRequestException('Failed to upload image');
+      throw new BadRequestException('Failed to upload image', error as Error);
     }
   }
 
@@ -73,6 +77,7 @@ export class UploadService {
       }
     } catch (error) {
       // Log error but don't throw - deletion failure shouldn't block the update
+      throw new BadRequestException('Failed to delete image', error as Error);
     }
   }
 
@@ -83,7 +88,10 @@ export class UploadService {
       const publicId = filename.split('.')[0];
       return `profile-pictures/${publicId}`;
     } catch (error) {
-      return null;
+      throw new BadRequestException(
+        'Failed to extract public ID',
+        error as Error,
+      );
     }
   }
 }
