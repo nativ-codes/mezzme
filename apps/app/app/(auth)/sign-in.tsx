@@ -24,27 +24,6 @@ const signInQuery = async ({
   return response.json();
 };
 
-const createUserQuery = async ({
-  authToken,
-  username,
-  email,
-}: {
-  authToken: string;
-  username: string;
-  email: string;
-}) => {
-  const response = await fetch(APIRoutes.users.create, {
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ username, email }),
-    method: "POST",
-  });
-
-  return response.json();
-};
-
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { getToken, userId } = useAuth();
@@ -59,19 +38,19 @@ export default function Page() {
     const authToken = await getToken();
     console.log("authToken", userId);
     if (authToken) {
-      try {
-        // Try to create user first (will fail if user already exists, which is fine)
-        if (username && emailAddress) {
-          await createUserQuery({
-            authToken,
-            username,
-            email: emailAddress,
-          });
-        }
-      } catch (error) {
-        // User might already exist, continue with login
-        console.log("User creation failed (might already exist):", error);
-      }
+      // try {
+      //   // Try to create user first (will fail if user already exists, which is fine)
+      //   if (username && emailAddress) {
+      //     await createUserQuery({
+      //       authToken,
+      //       username,
+      //       email: emailAddress,
+      //     });
+      //   }
+      // } catch (error) {
+      //   // User might already exist, continue with login
+      //   console.log("User creation failed (might already exist):", error);
+      // }
       
       const response = await signInQuery({
         authToken,
