@@ -2,6 +2,7 @@ import * as React from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useAuth, useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
+import { APIRoutes } from "@/config/api/routes";
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -9,20 +10,39 @@ export default function SignUpScreen() {
   const { getToken } = useAuth();
 
   const [emailAddress, setEmailAddress] = React.useState("");
+  const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [pendingVerification, setPendingVerification] = React.useState(false);
-  const [code, setCode] = React.useState("");
+
+  const createUserQuery = async ({
+    authToken,
+    username,
+    email,
+  }: {
+    authToken: string;
+    username: string;
+    email: string;
+  }) => {
+    const response = await fetch(APIRoutes.users.create, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, email }),
+      method: "POST",
+    });
+
+    return response.json();
+  };
 
   // Handle submission of sign-up form
   const onSignUpPress = async () => {
     if (!isLoaded) return;
 
-    console.log(emailAddress, password);
-
     // Start sign-up process using email and password provided
     try {
       const signUpAttempt = await signUp.create({
         emailAddress,
+        username,
         password,
       });
 
@@ -31,7 +51,25 @@ export default function SignUpScreen() {
 
       await setActive({ session: signUpAttempt.createdSessionId });
 
-      console.log('>>', await getToken());
+      const authToken = await getToken();
+      console.log('>>', authToken);
+
+      // Create user record on backend
+      if (authToken && username && emailAddress) {
+        try {
+          const userResponse = await createUserQuery({
+            authToken,
+            username,
+            email: emailAddress,
+          });
+          console.log('User created:', userResponse);
+        } catch (error) {
+          console.error('Failed to create user:', error);
+        }
+      }
+
+      // Redirect to users page
+      router.replace("/users");
 
       // Send user an email with verification code
       // await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
@@ -46,50 +84,6 @@ export default function SignUpScreen() {
     }
   };
 
-  // Handle submission of verification form
-  const onVerifyPress = async () => {
-    if (!isLoaded) return;
-
-    try {
-      // Use the code the user provided to attempt verification
-      const signUpAttempt = await signUp.attemptEmailAddressVerification({
-        code,
-      });
-
-      console.log(signUpAttempt);
-
-      // If verification was completed, set the session to active
-      // and redirect the user
-      if (signUpAttempt.status === "complete") {
-        await setActive({ session: signUpAttempt.createdSessionId });
-        router.replace("/");
-      } else {
-        // If the status is not complete, check why. User may need to
-        // complete further steps.
-        console.error(JSON.stringify(signUpAttempt, null, 2));
-      }
-    } catch (err) {
-      // See https://clerk.com/docs/guides/development/custom-flows/error-handling
-      // for more info on error handling
-      console.error(JSON.stringify(err, null, 2));
-    }
-  };
-
-  if (pendingVerification) {
-    return (
-      <>
-        <Text>Verify your email</Text>
-        <TextInput
-          value={code}
-          placeholder="Enter your verification code"
-          onChangeText={(code) => setCode(code)}
-        />
-        <TouchableOpacity onPress={onVerifyPress}>
-          <Text>Verify</Text>
-        </TouchableOpacity>
-      </>
-    );
-  }
 
   return (
     <View>
@@ -100,6 +94,11 @@ export default function SignUpScreen() {
           value={emailAddress}
           placeholder="Enter email"
           onChangeText={(email) => setEmailAddress(email)}
+        />
+        <TextInput
+          value={username}
+          placeholder="Enter username"
+          onChangeText={(username) => setUsername(username)}
         />
         <TextInput
           value={password}

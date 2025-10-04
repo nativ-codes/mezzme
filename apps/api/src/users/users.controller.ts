@@ -6,7 +6,10 @@ import {
   Body,
   Param,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
@@ -18,7 +21,7 @@ export class UsersController {
   // Create user
   @Post()
   create(
-    @CurrentUser('userId') authId: string,
+    @CurrentUser('authId') authId: string,
     @Body() createUserDto: CreateUserDto,
   ) {
     return this.usersService.createUser({
@@ -29,15 +32,15 @@ export class UsersController {
 
   // Get all users
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@CurrentUser('authId') authId: string) {
+    return this.usersService.findAll(authId);
   }
 
   // Get user profile
   @Get(':targetUserId')
   getProfile(
     @Param('targetUserId') targetUserId: string,
-    @CurrentUser('userId') authId: string,
+    @CurrentUser('authId') authId: string,
   ) {
     return this.usersService.getProfile({ authId, targetUserId });
   }
@@ -46,7 +49,7 @@ export class UsersController {
   @Post(':targetUserId/follow')
   followUser(
     @Param('targetUserId') targetUserId: string,
-    @CurrentUser('userId') authId: string,
+    @CurrentUser('authId') authId: string,
   ) {
     return this.usersService.followUser({ authId, targetUserId });
   }
@@ -55,7 +58,7 @@ export class UsersController {
   @Delete(':targetUserId/unfollow')
   unfollowUser(
     @Param('targetUserId') targetUserId: string,
-    @CurrentUser('userId') authId: string,
+    @CurrentUser('authId') authId: string,
   ) {
     return this.usersService.unfollowUser({ authId, targetUserId });
   }
@@ -68,5 +71,33 @@ export class UsersController {
     @Query('limit') limit: number,
   ) {
     return this.usersService.getFollowing({ authId, page, limit });
+  }
+
+  // Add profile picture
+  @Post('profile-pictures')
+  @UseInterceptors(FileInterceptor('profilePicture'))
+  addProfilePicture(
+    @CurrentUser('authId') authId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.usersService.addProfilePicture(authId, file);
+  }
+
+  // Remove profile picture
+  @Delete('profile-pictures')
+  removeProfilePicture(
+    @CurrentUser('authId') authId: string,
+    @Body('profilePictureId') profilePictureId: string,
+  ) {
+    return this.usersService.removeProfilePicture(authId, profilePictureId);
+  }
+
+  // Set primary profile picture
+  @Post('profile-pictures/primary')
+  setPrimaryProfilePicture(
+    @CurrentUser('authId') authId: string,
+    @Body('profilePictureId') profilePictureId: string,
+  ) {
+    return this.usersService.setPrimaryProfilePicture(authId, profilePictureId);
   }
 }

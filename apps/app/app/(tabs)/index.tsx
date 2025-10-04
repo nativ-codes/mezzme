@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { SignedIn, SignedOut, useAuth, useUser } from "@clerk/clerk-expo";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { Text, View } from "react-native";
 import { SignOutButton } from "@/components/sign-out-button";
 import * as shared from '@mezzme/shared'
@@ -8,6 +8,7 @@ console.log(shared)
 export default function Page() {
   const { user } = useUser();
   const { getToken } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchToken = async () => {
@@ -16,6 +17,12 @@ export default function Page() {
     };
     fetchToken();
   }, [getToken]);
+
+  useEffect(() => {
+    if (user) {
+      router.replace("/users");
+    }
+  }, [user, router]);
   
   return (
     <View style={{

@@ -24,6 +24,27 @@ const signInQuery = async ({
   return response.json();
 };
 
+const createUserQuery = async ({
+  authToken,
+  username,
+  email,
+}: {
+  authToken: string;
+  username: string;
+  email: string;
+}) => {
+  const response = await fetch(APIRoutes.users.create, {
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ username, email }),
+    method: "POST",
+  });
+
+  return response.json();
+};
+
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { getToken, userId } = useAuth();
@@ -31,18 +52,33 @@ export default function Page() {
   const router = useRouter();
 
   const [emailAddress, setEmailAddress] = React.useState("");
+  const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
 
   const signOnServer = async () => {
     const authToken = await getToken();
     console.log("authToken", userId);
     if (authToken) {
+      try {
+        // Try to create user first (will fail if user already exists, which is fine)
+        if (username && emailAddress) {
+          await createUserQuery({
+            authToken,
+            username,
+            email: emailAddress,
+          });
+        }
+      } catch (error) {
+        // User might already exist, continue with login
+        console.log("User creation failed (might already exist):", error);
+      }
+      
       const response = await signInQuery({
         authToken,
         userId: userId as string,
       });
       console.log("response", userId, response);
-      router.replace("/");
+      router.replace("/users");
     } else {
       throw new Error("No auth token");
     }
@@ -92,6 +128,12 @@ export default function Page() {
         value={emailAddress}
         placeholder="Enter email"
         onChangeText={(emailAddress) => setEmailAddress(emailAddress)}
+      />
+      <TextInput
+        autoCapitalize="none"
+        value={username}
+        placeholder="Enter username"
+        onChangeText={(username) => setUsername(username)}
       />
       <TextInput
         value={password}
