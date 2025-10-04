@@ -1,4 +1,3 @@
-// users/users.controller.ts
 import {
   Controller,
   Get,
@@ -19,10 +18,13 @@ export class UsersController {
   // Create user
   @Post()
   create(
-    @CurrentUser('userId') userId: string,
+    @CurrentUser('userId') authId: string,
     @Body() createUserDto: CreateUserDto,
   ) {
-    return this.usersService.create({ clerkId: userId, ...createUserDto });
+    return this.usersService.createUser({
+      authId,
+      ...createUserDto,
+    });
   }
 
   // Get all users
@@ -35,36 +37,36 @@ export class UsersController {
   @Get(':targetUserId')
   getProfile(
     @Param('targetUserId') targetUserId: string,
-    @CurrentUser('userId') clerkId: string,
+    @CurrentUser('userId') authId: string,
   ) {
-    return this.usersService.getUserProfile({ clerkId, targetUserId });
+    return this.usersService.getProfile({ authId, targetUserId });
   }
 
   // Follow a user
   @Post(':targetUserId/follow')
   followUser(
     @Param('targetUserId') targetUserId: string,
-    @CurrentUser('userId') clerkId: string,
+    @CurrentUser('userId') authId: string,
   ) {
-    return this.usersService.followUser({ clerkId, targetUserId });
+    return this.usersService.followUser({ authId, targetUserId });
   }
 
   // Unfollow a user
   @Delete(':targetUserId/unfollow')
   unfollowUser(
     @Param('targetUserId') targetUserId: string,
-    @CurrentUser('userId') clerkId: string,
+    @CurrentUser('userId') authId: string,
   ) {
-    return this.usersService.unfollowUser({ clerkId, targetUserId });
+    return this.usersService.unfollowUser({ authId, targetUserId });
   }
 
   // Get following list
-  @Get(':clerkId/following')
+  @Get(':authId/following')
   getFollowing(
-    @Param('clerkId') clerkId: string,
+    @Param('authId') authId: string,
     @Query('page') page: number,
     @Query('limit') limit: number,
   ) {
-    return this.usersService.getFollowing({ clerkId, page, limit });
+    return this.usersService.getFollowing({ authId, page, limit });
   }
 }

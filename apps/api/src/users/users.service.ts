@@ -3,34 +3,19 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { User, UserDocument } from './schemas/user.schema';
+import { UsersRepository } from './repositories/users.repository';
+import { CreateUserDto } from './dto/create-user.dto';
+import { FollowUserDto } from './dto/follow-user.dto';
+import { GetProfileDto } from './dto/get-profile.dto';
+import { UnfollowUserDto } from './dto/unfollow-user.dto';
+import { GetFollowingDto } from './dto/get-following.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectModel(User.name)
-    private userModel: Model<UserDocument>,
-  ) {}
+  constructor(private readonly usersRepository: UsersRepository) {}
 
-  // Create user
-  async create({
-    clerkId,
-    username,
-    email,
-  }: {
-    clerkId: string;
-    username: string;
-    email: string;
-  }) {
-    const user = new this.userModel({
-      clerkId,
-      username,
-      email,
-    });
-
-    const savedUser = await user.save();
+  async createUser(createUserDto: CreateUserDto) {
+    const savedUser = await this.usersRepository.createUser(createUserDto);
 
     return {
       id: savedUser._id.toString(),
@@ -39,30 +24,14 @@ export class UsersService {
     };
   }
 
-  // Get user by Clerk ID with basic info
-  async findById(clerkId: string) {
-    const user = await this.userModel.findOne({ clerkId }).exec();
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    return user;
-  }
-
-  // Follow a user
-  async followUser({
-    clerkId,
-    targetUserId,
-  }: {
-    clerkId: string;
-    targetUserId: string;
-  }) {
-    if (clerkId === targetUserId) {
+  async followUser({ authId, targetUserId }: FollowUserDto) {
+    if (authId === targetUserId) {
       throw new BadRequestException('Cannot follow yourself');
     }
 
     const [user, targetUser] = await Promise.all([
-      this.userModel.findOne({ clerkId }),
-      this.userModel.findOne({ clerkId: targetUserId }),
+      this.usersRepository.findByAuthId(authId),
+      this.usersRepository.findById(targetUserId),
     ]);
 
     if (!user || !targetUser) {
@@ -75,43 +44,19 @@ export class UsersService {
     }
 
     // Update both users atomically
-    await Promise.all([
-      // Add to current user's following list
-      this.userModel.findOneAndUpdate(
-        { clerkId },
-        {
-          $push: { following: targetUser._id },
-          $inc: { followingCount: 1 },
-        },
-      ),
-      // Add to target user's followers list
-      this.userModel.findOneAndUpdate(
-        { clerkId: targetUserId },
-        {
-          $push: { followers: user._id },
-          $inc: { followersCount: 1 },
-        },
-      ),
-    ]);
+    await this.usersRepository.followUser({ user, targetUser });
 
     return { message: 'Successfully followed user' };
   }
 
-  // Unfollow a user
-  async unfollowUser({
-    clerkId,
-    targetUserId,
-  }: {
-    clerkId: string;
-    targetUserId: string;
-  }) {
-    if (clerkId === targetUserId) {
+  async unfollowUser({ authId, targetUserId }: UnfollowUserDto) {
+    if (authId === targetUserId) {
       throw new BadRequestException('Cannot unfollow yourself');
     }
 
     const [user, targetUser] = await Promise.all([
-      this.userModel.findOne({ clerkId }),
-      this.userModel.findOne({ clerkId: targetUserId }),
+      this.usersRepository.findByAuthId(authId),
+      this.usersRepository.findById(targetUserId),
     ]);
 
     if (!user || !targetUser) {
@@ -124,49 +69,17 @@ export class UsersService {
     }
 
     // Update both users atomically
-    await Promise.all([
-      // Remove from current user's following list
-      this.userModel.findOneAndUpdate(
-        { clerkId },
-        {
-          $pull: { following: targetUser._id },
-          $inc: { followingCount: -1 },
-        },
-      ),
-      // Remove from target user's followers list
-      this.userModel.findOneAndUpdate(
-        { clerkId: targetUserId },
-        {
-          $pull: { followers: user._id },
-          $inc: { followersCount: -1 },
-        },
-      ),
-    ]);
+    await this.usersRepository.unfollowUser({ user, targetUser });
 
     return { message: 'Successfully unfollowed user' };
   }
 
-  // Get following list
-  async getFollowing({
-    clerkId,
-    page = 1,
-    limit = 20,
-  }: {
-    clerkId: string;
-    page: number;
-    limit: number;
-  }) {
-    const user = await this.userModel
-      .findOne({ clerkId })
-      .populate({
-        path: 'following',
-        select: 'username email followersCount',
-        options: {
-          skip: (page - 1) * limit,
-          limit: limit,
-        },
-      })
-      .exec();
+  async getFollowing({ authId, page = 1, limit = 20 }: GetFollowingDto) {
+    const user = await this.usersRepository.getFollowing({
+      authId,
+      page,
+      limit,
+    });
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -180,16 +93,17 @@ export class UsersService {
     };
   }
 
-  // Get user profile with follow stats
-  async getUserProfile({
-    clerkId,
-    targetUserId,
-  }: {
-    clerkId: string;
-    targetUserId: string;
-  }) {
-    const targetUser = await this.findById(targetUserId);
-    const currentUser = await this.userModel.findOne({ clerkId }).exec();
+  async getProfile({ authId, targetUserId }: GetProfileDto) {
+    const targetUser = await this.usersRepository.findById(targetUserId);
+    const currentUser = await this.usersRepository.findByAuthId(authId);
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!currentUser) {
+      throw new NotFoundException('Current user not found');
+    }
 
     return {
       id: targetUser._id,
@@ -204,11 +118,7 @@ export class UsersService {
     };
   }
 
-  // Get all users (for testing)
-  async findAll() {
-    return this.userModel
-      .find()
-      .select('username email followersCount followingCount')
-      .exec();
+  findAll() {
+    return this.usersRepository.findAll();
   }
 }

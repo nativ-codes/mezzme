@@ -26,13 +26,13 @@ export class ClerkAuthGuard {
       throw new UnauthorizedException('No token provided');
     }
     try {
-      const payload = await verifyToken(token, {
+      const payload = await verifyToken(token as string, {
         secretKey: this.configService.get('CLERK_SECRET_KEY'),
       });
 
       // Attach user info to request
       req.user = {
-        userId: payload.sub, // Clerk user ID
+        authId: payload.sub, // Clerk user ID
         ...payload,
       };
 
