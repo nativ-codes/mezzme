@@ -38,20 +38,6 @@ export default function Page() {
     const authToken = await getToken();
     console.log("authToken", userId);
     if (authToken) {
-      // try {
-      //   // Try to create user first (will fail if user already exists, which is fine)
-      //   if (username && emailAddress) {
-      //     await createUserQuery({
-      //       authToken,
-      //       username,
-      //       email: emailAddress,
-      //     });
-      //   }
-      // } catch (error) {
-      //   // User might already exist, continue with login
-      //   console.log("User creation failed (might already exist):", error);
-      // }
-      
       const response = await signInQuery({
         authToken,
         userId: userId as string,
